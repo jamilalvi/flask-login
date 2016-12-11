@@ -28,11 +28,11 @@ from werkzeug.urls import url_decode, url_encode
 
 from datetime import datetime, timedelta
 from functools import wraps
-from hashlib import sha512
+from hashlib import sha224 as hashFunc   # JAlvi
 
 import hmac
 import warnings
-import sys
+import sys, time
 
 if sys.version < '3':  # pragma: no cover
     from urlparse import urlparse, urlunparse
@@ -348,7 +348,7 @@ class LoginManager(object):
                         "No user_loader has been installed for this "
                         "LoginManager. Add one with the "
                         "'LoginManager.user_loader' decorator.")
-                user = self.user_callback(user_id)
+                user = self.user_callback(user_id, session['_id'])  # JAlvi
                 if user is None:
                     ctx.user = self.anonymous_user()
                 else:
@@ -670,7 +670,7 @@ def make_secure_token(*args, **options):
 
     payload = b'\0'.join(l)
 
-    token_value = hmac.new(key, payload, sha512).hexdigest()
+    token_value = hmac.new(key, payload, hashFunc).hexdigest()
 
     if hasattr(token_value, 'decode'):  # pragma: no cover
         token_value = token_value.decode('utf-8')  # ensure bytes
@@ -863,7 +863,7 @@ def _get_user():
 def _cookie_digest(payload, key=None):
     key = _secret_key(key)
 
-    return hmac.new(key, payload.encode('utf-8'), sha512).hexdigest()
+    return hmac.new(key, payload.encode('utf-8'), hashFunc).hexdigest()
 
 
 def _get_remote_addr():
@@ -879,10 +879,10 @@ def _create_identifier():
     user_agent = request.headers.get('User-Agent')
     if user_agent is not None:
         user_agent = user_agent.encode('utf-8')
-    base = '{0}|{1}'.format(_get_remote_addr(), user_agent)
+    base = '{0}|{1}|{2}'.format(_get_remote_addr(), user_agent, time.time())  # JAlvi
     if str is bytes:
         base = unicode(base, 'utf-8', errors='replace')  # pragma: no cover
-    h = sha512()
+    h = hashFunc()
     h.update(base.encode('utf8'))
     return h.hexdigest()
 
